@@ -1,4 +1,5 @@
 #include <termios.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -7,14 +8,26 @@
 
 struct termios original_termios;
 
+void die (const char *s) {
+
+    perror(s);
+    exit(1);
+
+}
+
 
 void disableRawMode() {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios) == -1) {
+        die("tcsetattr");
+    }
 }
 
 void enableRawMode() {
 
-    tcgetattr(STDIN_FILENO, &original_termios);
+    if (tcgetattr(STDIN_FILENO, &original_termios)) {
+        die("tcgetattr");
+    }
+
     atexit(disableRawMode);
 
 
@@ -26,11 +39,12 @@ void enableRawMode() {
     changed_termios.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);   
     changed_termios.c_cc[VMIN] = 0;
     changed_termios.c_cc[VTIME] = 1; 
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &changed_termios);
 
-
-  
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &changed_termios)) {
+        die("tcsetattr");
+    }
 }
+
 int main() {
 
   enableRawMode();
@@ -38,7 +52,11 @@ int main() {
   while(1) {
 
     char c = '\0';
-    read(STDIN_FILENO, &c, 1);
+    
+    if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) {
+        die("read");
+    }
+
     if (iscntrl(c)) {
       printf("%d\r\n", c);
     } else {
