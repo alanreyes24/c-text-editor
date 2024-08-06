@@ -15,9 +15,28 @@
 
 struct termios original_termios;
 
+/* output */
+
+void editorDrawRows() {
+    int y;
+    for (y = 0; y < 24; y++) {
+        write(STDOUT_FILENO, "~\r\n", 3);
+    }
+}
+
+void editorRefreshScreen() {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    editorDrawRows();
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
 /* terminal */
 
 void die(const char *s) {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
     perror(s);
     exit(1);
 }
@@ -29,6 +48,7 @@ void disableRawMode() {
 }
 
 void enableRawMode() {
+
     if (tcgetattr(STDIN_FILENO, &original_termios) == -1) {
         die("tcgetattr");
     }
@@ -47,13 +67,6 @@ void enableRawMode() {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &changed_termios) == -1) {
         die("tcsetattr");
     }
-}
-
-void charToBinaryString(char c, char *buffer) {
-    for (int i = 7; i >= 0; i--) {
-        buffer[7 - i] = (c & (1 << i)) ? '1' : '0';
-    }
-    buffer[8] = '\0';
 }
 
 char editorReadKey() {
@@ -79,6 +92,8 @@ void editorProcessKeypress() {
 
     switch(c) {
         case CTRL_KEY('q'):
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        write(STDOUT_FILENO, "\x1b[H", 3);
         exit(0);
         break;
     }
@@ -91,6 +106,7 @@ int main() {
     enableRawMode();
 
     while (1) {
+        editorRefreshScreen();
         editorProcessKeypress();
     }
 
