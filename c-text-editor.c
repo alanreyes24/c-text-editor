@@ -20,7 +20,7 @@ void enableRawMode() {
 
     struct termios changed_termios = original_termios;
 
-    changed_termios.c_lflag &= ~(ECHO);
+    changed_termios.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &changed_termios);
 
 
